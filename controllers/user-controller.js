@@ -257,6 +257,7 @@ const forgotPassword = async (req, res, next) => {
 const resetPassword = async (req, res, next) => {
     try {
         const { token } = req.params;
+        console.log(token)
         const resetPasswordToken = crypto
             .createHash("sha256")
             .update(token)
