@@ -94,6 +94,7 @@ const getSingleProject=async(req,res,next)=>
     const { id } = req.params;
     try {
       const project = await Project.findById(id);
+      console.log(project)
       res.status(200).json({
         success: true,
         project,

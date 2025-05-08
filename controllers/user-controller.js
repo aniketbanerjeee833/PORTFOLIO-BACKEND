@@ -145,7 +145,7 @@ const updateProfile = async (req, res, next) => {
             const user = await User.findById(req.user.id)
             const profileImageId = user.avatar.public_id
             await cloudinary.uploader.destroy(profileImageId)
-            const newProfileImage = await cloudinary.uploader.upload(avatar.tempFilePath, { folder: "PORTFOLIO AVATAR" })
+            const newProfileImage = await cloudinary.uploader.upload(avatar.tempFilePath, { folder: "PORTFOLIO_AVATAR" })
             newUserData.avatar = {
                 public_id: newProfileImage.public_id,
                 url: newProfileImage.secure_url,
@@ -153,16 +153,44 @@ const updateProfile = async (req, res, next) => {
         }
         if (req.files && req.files.resume) {
             const resume = req.files.resume
+            console.log("Resume Temp File Path:", resume.tempFilePath);
+            if (resume.mimetype !== "application/pdf") {
+                return next(new ErrorHandler("Only PDF files are allowed for resumes", 400));
+            }
             const user = await User.findById(req.user.id)
             const profileResumeId = user.resume.public_id
+            console.log("Profile Resume ID:", profileResumeId);
             await cloudinary.uploader.destroy(profileResumeId)
-            const newResume = await cloudinary.uploader.upload(resume.tempFilePath, { folder: "PORTFOLIO RESUME" })
-            newUserData.avatar = {
-                public_id: newResume.public_id,
-                url: newResume.secure_url,
-            };
+            // const newResume = await cloudinary.uploader.upload(resume.tempFilePath, { folder: "PORTFOLIO_RESUME",
+            //   resource_type: "auto"
+            //  })
+            //  console.log("New Resume:", newResume);
+             const converted = await cloudinary.uploader.upload(resume.tempFilePath, {
+                folder: "PORTFOLIO_RESUME",
+                resource_type: "image", // 👈 this triggers image conversion
+                format: "png",          // 👈 force conversion to PNG
+                pages: true,            // 👈 upload PDF as multi-page images
+              });
+      console.log("Converted Resume:", converted);
+              newUserData.resume = {
+                public_id: converted.public_id,
+                url: converted.secure_url,
+              }
+            //  const pdfUrl = newResume.secure_url.replace('/raw/upload/', '/raw/upload/') + '.pdf';
+            // newUserData.resume = {
+            //     public_id: newResume.public_id,
+            //     url: newResume.secure_url, // Add inline=true to the URL for PDF display
+            // };
+            // newUserData.resume = {
+            //     public_id: newResume.public_id,
+            //     url: newResume.secure_url.replace("raw/upload", "upload") // Fix the URL here
+            // };
+            // newUserData.resume = {
+            //     public_id:newResume.public_id,
+            //     url: pdfUrl // 👈 force raw rendering
+            //   };
         }
-
+        console.log(newUserData)
         const user = await User.findByIdAndUpdate(req.user.id, newUserData, { new: true, runValidators: true, useFindAndModify: false, });
         return res.status(200).json({
             success: true,
